@@ -40,7 +40,10 @@ import {
 
 export class KnowledgeStore {
   constructor(projectPath) {
-    this.memoryPath = path.join(projectPath, '.claude-memory');
+    // If MEMORY_STORAGE_PATH is set, use it directly; otherwise append .claude-memory
+    this.memoryPath = process.env.MEMORY_STORAGE_PATH
+      ? projectPath
+      : path.join(projectPath, '.claude-memory');
     this.vectorStore = new VectorStore(this.memoryPath);
   }
 

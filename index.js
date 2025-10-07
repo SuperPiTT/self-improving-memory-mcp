@@ -13,7 +13,8 @@ import { KnowledgeStore } from './src/knowledge-store.js';
 import { createMCPServer } from './src/mcp-server.js';
 
 async function main() {
-  const projectPath = process.cwd();
+  // Use MEMORY_STORAGE_PATH from env if provided, otherwise use current working directory
+  const projectPath = process.env.MEMORY_STORAGE_PATH || process.cwd();
   const store = new KnowledgeStore(projectPath);
 
   await store.initialize();
@@ -24,6 +25,7 @@ async function main() {
   await server.connect(transport);
 
   console.error('Self-Improving Memory MCP server running - 100% Vector Search');
+  console.error(`Storage path: ${projectPath}`);
 }
 
 main().catch(console.error);
