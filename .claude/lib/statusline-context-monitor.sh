@@ -60,6 +60,22 @@ fi
 reset="\033[0m"
 dim="\033[2m"
 
+# Calculate estimated API cost (Sonnet 4.5 pricing)
+# Input: $3/M tokens, Output: $15/M tokens
+# Assume 50/50 split for estimation
+calculate_cost() {
+  local tokens=$1
+  # Average cost: (3 + 15) / 2 = $9 per million tokens
+  # Cost in cents to avoid floating point: 900 cents per million tokens
+  local cost_cents=$((tokens * 900 / 1000000))
+
+  # Format: dollars.cents
+  local dollars=$((cost_cents / 100))
+  local cents=$((cost_cents % 100))
+
+  printf "$%d.%02d" "$dollars" "$cents"
+}
+
 # Format numbers with commas
 format_number() {
   printf "%'d" "$1" 2>/dev/null || echo "$1"
@@ -67,6 +83,7 @@ format_number() {
 
 current_fmt=$(format_number "$current_tokens")
 max_fmt=$(format_number "$MAX_TOKENS")
+cost=$(calculate_cost "$current_tokens")
 
 # Build status line
-printf "${color}${icon} Context: ${current_fmt}/${max_fmt} tokens (${percentage}%%)${reset} ${dim}[${status}]${reset}"
+printf "${color}${icon} Context: ${current_fmt}/${max_fmt} (${percentage}%%)${reset} ${dim}| ~${cost} API${reset}"

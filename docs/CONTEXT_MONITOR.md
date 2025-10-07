@@ -9,14 +9,15 @@ Monitorea en tiempo real el uso de contexto (tokens) directamente en la barra de
 - ✅ **Alertas automáticas** al 80% y 90%
 - ✅ **Barra de progreso** visual (versión avanzada)
 - ✅ **Estimación precisa** basada en tamaño del transcript
+- ✅ **Costo estimado de API** en tiempo real (Claude Sonnet 4.5)
 
 ## 📦 Versiones Disponibles
 
 ### Versión Simple (`statusline-context-monitor.sh`)
-Muestra: `✓ Context: 85,000/200,000 tokens (42%) [OK]`
+Muestra: `✓ Context: 85,000/200,000 (42%) | ~$0.76 API`
 
 ### Versión Avanzada (`statusline-context-advanced.sh`)
-Muestra: `✓ [████████░░░░░░░░░░░░] 42% (85,000/200,000)`
+Muestra: `✓ [████████░░░░░░░░░░░░] 42% (85,000/200,000) | ~$0.76 API`
 
 ## 🚀 Instalación
 
@@ -61,6 +62,23 @@ MAX_TOKENS=200000          # Límite máximo
 WARN_THRESHOLD=160000      # 80% - Warning
 CRITICAL_THRESHOLD=180000  # 90% - Critical
 ```
+
+## 💰 Cálculo de Costos
+
+**Modelo**: Claude Sonnet 4.5
+**Precios API**:
+- Input: $3.00 por millón de tokens
+- Output: $15.00 por millón de tokens
+
+**Estimación**: Asume división 50/50 input/output = **$9.00 promedio por millón de tokens**
+
+**Ejemplos**:
+- 50k tokens = ~$0.45
+- 100k tokens = ~$0.90
+- 160k tokens (80%) = ~$1.44
+- 200k tokens (máx) = ~$1.80
+
+**Nota**: El costo real variará según la proporción real de input/output en tu conversación.
 
 ## 🔧 Personalización
 

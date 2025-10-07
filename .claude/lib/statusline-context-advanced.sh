@@ -53,6 +53,16 @@ for ((i=0; i<empty; i++)); do
   bar="${bar}${gray_bg} ${reset}"
 done
 
+# Calculate estimated API cost (Sonnet 4.5 pricing)
+calculate_cost() {
+  local tokens=$1
+  # Average cost: $9 per million tokens (50/50 input/output split)
+  local cost_cents=$((tokens * 900 / 1000000))
+  local dollars=$((cost_cents / 100))
+  local cents=$((cost_cents % 100))
+  printf "$%d.%02d" "$dollars" "$cents"
+}
+
 # Format numbers
 format_num() {
   printf "%'d" "$1" 2>/dev/null || echo "$1"
@@ -60,6 +70,7 @@ format_num() {
 
 current_fmt=$(format_num "$current_tokens")
 max_fmt=$(format_num "$MAX_TOKENS")
+cost=$(calculate_cost "$current_tokens")
 
 # Output
-printf "${icon} ${bar} ${text_color}${percentage}%%${reset} ${dim}(${current_fmt}/${max_fmt})${reset}"
+printf "${icon} ${bar} ${text_color}${percentage}%%${reset} ${dim}(${current_fmt}/${max_fmt}) | ~${cost} API${reset}"
