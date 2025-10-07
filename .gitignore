@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Memory data
+.claude-memory/
+memory_data/
+
+# Cache
+cache/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Build outputs
+dist/
+build/
+
+# Temporary files
+*.tmp
+tmp/
+temp/
+nul
+
+# Export files (optional - keep if you want to version them)
+# exports/
+# *.html
+# *.json

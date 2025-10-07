@@ -1,0 +1,68 @@
+# Test files
+tests/
+*.test.js
+coverage/
+.nyc_output/
+
+# Development
+.git/
+.github/
+.husky/
+node_modules/
+
+# Memory data (don't publish user data)
+.claude-memory/
+memory_data/
+cache/
+*.db
+*.lancedb
+
+# Exports
+exports/
+
+# Logs
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Build outputs (if any)
+dist/
+build/
+
+# Temporary files
+*.tmp
+tmp/
+temp/
+nul
+
+# Git
+.gitignore
+.gitattributes
+
+# CI/CD (keep minimal CI in package)
+.travis.yml
+
+# Scripts not needed for users
+scripts/
+
+# Keep these files IN the package
+!bin/
+!src/
+!.claude/
+!docs/
+!README.md
+!QUICK-INSTALL.md
+!LICENSE
+!index.js
+!memory-cli.js
