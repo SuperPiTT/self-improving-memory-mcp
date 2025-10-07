@@ -45,22 +45,6 @@ function logWarning(message) {
   log(`⚠ ${message}`, 'yellow');
 }
 
-// Detect OS and get config path
-function getClaudeConfigPath() {
-  const platform = process.platform;
-  const home = process.env.HOME || process.env.USERPROFILE;
-
-  switch (platform) {
-    case 'darwin': // macOS
-      return path.join(home, 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
-    case 'linux':
-      return path.join(home, '.config', 'Claude', 'claude_desktop_config.json');
-    case 'win32': // Windows
-      return path.join(process.env.APPDATA, 'Claude', 'claude_desktop_config.json');
-    default:
-      return null;
-  }
-}
 
 // Ask user for input
 function askQuestion(question) {
@@ -144,7 +128,7 @@ function copyCLAUDEmd(projectPath) {
 }
 
 // Update or create Claude Code config (mcp.json)
-function updateClaudeCodeConfig(projectPath) {
+async function updateClaudeCodeConfig(projectPath) {
   log('\n📝 Claude Code Configuration', 'cyan');
 
   // Check if .claude directory exists
@@ -174,9 +158,20 @@ function updateClaudeCodeConfig(projectPath) {
     }
   }
 
-  // Add or update memory server
+  // Ensure mcpServers exists
   if (!config.mcpServers) {
     config.mcpServers = {};
+  }
+
+  // Check if memory server already exists
+  const serverKey = 'self-improving-memory';
+  if (config.mcpServers[serverKey]) {
+    logInfo(`Server "${serverKey}" already configured`);
+    const answer = await askQuestion(`Update existing "${serverKey}" configuration? (y/n): `);
+    if (answer.toLowerCase() !== 'y' && answer.toLowerCase() !== 'yes') {
+      logInfo('Skipping memory server configuration');
+      return true; // Still return true as .claude exists
+    }
   }
 
   // Try to find the package (globally or locally)
@@ -196,7 +191,8 @@ function updateClaudeCodeConfig(projectPath) {
 
   const storagePath = path.join(projectPath, '.claude', 'memory-storage');
 
-  config.mcpServers.memory = {
+  // Add/update memory server with unique key
+  config.mcpServers[serverKey] = {
     command: 'node',
     args: [path.join(packagePath, 'index.js')],
     env: {
@@ -204,69 +200,18 @@ function updateClaudeCodeConfig(projectPath) {
     }
   };
 
+  // Count other servers (excluding our own)
+  const otherServers = Object.keys(config.mcpServers).filter(k => k !== serverKey);
+  if (otherServers.length > 0) {
+    logInfo(`Preserving ${otherServers.length} existing MCP server(s): ${otherServers.join(', ')}`);
+  }
+
   // Write updated config
   fs.writeFileSync(mcpConfigPath, JSON.stringify(config, null, 2));
-  logSuccess('Updated Claude Code mcp.json');
+  logSuccess('Updated Claude Code mcp.json (existing configs preserved)');
   return true;
 }
 
-// Update or create Claude Desktop config
-function updateClaudeConfig(projectPath) {
-  const configPath = getClaudeConfigPath();
-
-  if (!configPath) {
-    logError('Could not detect Claude Desktop config path for your OS');
-    logInfo('Please configure manually. See docs/INSTALLATION.md');
-    return;
-  }
-
-  log('\n📝 Claude Desktop Configuration', 'cyan');
-  logInfo(`Config path: ${configPath}`);
-
-  // Create config directory if it doesn't exist
-  const configDir = path.dirname(configPath);
-  if (!fs.existsSync(configDir)) {
-    fs.mkdirSync(configDir, { recursive: true });
-    logSuccess('Created Claude Desktop config directory');
-  }
-
-  // Read or create config
-  let config = {};
-  if (fs.existsSync(configPath)) {
-    try {
-      config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-      logInfo('Existing config found');
-
-      // Backup existing config
-      const backupPath = `${configPath}.backup-${Date.now()}`;
-      fs.copyFileSync(configPath, backupPath);
-      logSuccess(`Backup created: ${backupPath}`);
-    } catch (error) {
-      logWarning('Could not parse existing config, creating new one');
-    }
-  }
-
-  // Add or update memory server
-  if (!config.mcpServers) {
-    config.mcpServers = {};
-  }
-
-  // Get the path to the globally installed package
-  const globalNodeModules = execSync('npm root -g', { encoding: 'utf-8' }).trim();
-  const packagePath = path.join(globalNodeModules, '@pytt0n', 'self-improving-memory-mcp');
-
-  config.mcpServers.memory = {
-    command: 'node',
-    args: [path.join(packagePath, 'index.js')],
-    env: {
-      PROJECT_PATH: projectPath
-    }
-  };
-
-  // Write updated config
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-  logSuccess('Updated Claude Desktop config');
-}
 
 // Create .gitignore entries
 function updateGitignore(projectPath, customMode) {
@@ -359,18 +304,16 @@ async function install() {
   updateGitignore(projectPath, customMode);
   log('');
 
-  // Step 7: Try to configure Claude Code first
-  let claudeCodeConfigured = false;
+  // Step 7: Configure Claude Code
   log(`Step ${customMode ? '6' : '5'}: Configuring Claude Code...`, 'yellow');
-  claudeCodeConfigured = updateClaudeCodeConfig(projectPath);
-  log('');
+  const claudeCodeConfigured = await updateClaudeCodeConfig(projectPath);
 
-  // Step 8: Update Claude Desktop config (if not Claude Code project)
   if (!claudeCodeConfigured) {
-    log(`Step ${customMode ? '7' : '6'}: Configuring Claude Desktop...`, 'yellow');
-    updateClaudeConfig(projectPath);
-    log('');
+    logError('This plugin requires a Claude Code project (.claude directory)');
+    logInfo('Please run this command from a Claude Code project directory');
+    process.exit(1);
   }
+  log('');
 
   // Success message
   log('='.repeat(50), 'cyan');
@@ -391,8 +334,8 @@ async function install() {
 
   log('');
   log('Next steps:', 'bright');
-  log('  1. Restart Claude Desktop completely', 'cyan');
-  log('  2. Open Claude and verify tools are available:', 'cyan');
+  log('  1. Reload Claude Code window or restart', 'cyan');
+  log('  2. Verify tools are available:', 'cyan');
   log('     "Claude, can you see the memory tools?"', 'cyan');
   log('  3. Start using the memory system automatically!', 'cyan');
   log('');

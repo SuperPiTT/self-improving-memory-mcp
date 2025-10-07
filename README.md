@@ -5,7 +5,9 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 [![GitHub Stars](https://img.shields.io/github/stars/SuperPiTT/self-improving-memory-mcp?style=social)](https://github.com/SuperPiTT/self-improving-memory-mcp/stargazers)
 
-Sistema de memoria auto-evolutivo para proyectos de código con Claude. Captura automáticamente decisiones, errores, soluciones y patrones, evaluando confianza, evitando repetir trabajo y errores. **Nunca pierde contexto gracias al sistema anti-compactación.**
+Sistema de memoria auto-evolutivo para Claude Code CLI. Captura automáticamente decisiones, errores, soluciones y patrones, evaluando confianza, evitando repetir trabajo y errores. **Nunca pierde contexto gracias al sistema anti-compactación.**
+
+> **💡 Para Claude Code CLI únicamente** - No compatible con Claude Desktop
 
 ---
 
@@ -23,13 +25,30 @@ cd /path/to/your/project
 # Run installer
 memory-install
 
-# Restart Claude Desktop - Done! 🎉
+# Reload Claude Code - Done! 🎉
 ```
 
 **That's it!** The memory system is now active in your project.
 
 > **Clean install by default:** No files are copied to your project. The plugin runs from `node_modules`.
 > **Want to customize?** Run `memory-install --custom` to copy files to `.claude-mcp/` for editing.
+
+> **⚠️ Requiere Claude Code CLI:** Este plugin funciona exclusivamente con Claude Code (CLI), no con Claude Desktop.
+
+### ✅ Sin Colisiones con Otras Configuraciones
+
+El instalador **preserva automáticamente** tus configuraciones MCP existentes:
+
+- ✅ **Fusiona** en vez de sobrescribir
+- ✅ **Nombre único** del servidor: `self-improving-memory`
+- ✅ **Backup automático** antes de modificar
+- ✅ **Compatible** con otros plugins MCP
+
+Si ya tienes `mcp.json` con otros servidores, el instalador:
+1. Crea backup con timestamp
+2. Preserva todos los `mcpServers` existentes
+3. Agrega solo el servidor de memoria
+4. Pregunta antes de actualizar si ya existe
 
 📖 **[Quick Install Guide](QUICK-INSTALL.md)** | **[Full Installation Guide](docs/INSTALLATION.md)**
 

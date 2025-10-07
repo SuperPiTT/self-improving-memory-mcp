@@ -2,6 +2,8 @@
 
 Complete installation instructions for the Self-Improving Memory MCP Server.
 
+> **⚠️ Claude Code CLI Only**: This plugin is designed exclusively for Claude Code CLI. It is NOT compatible with Claude Desktop.
+
 ---
 
 ## Table of Contents
@@ -9,8 +11,7 @@ Complete installation instructions for the Self-Improving Memory MCP Server.
 - [Prerequisites](#prerequisites)
 - [Installation Methods](#installation-methods)
   - [Quick Install (Recommended)](#quick-install-recommended)
-  - [Manual Installation](#manual-installation)
-  - [NPM Global Install](#npm-global-install)
+  - [Custom Install](#custom-install)
 - [Configuration](#configuration)
 - [Verification](#verification)
 - [Troubleshooting](#troubleshooting)
@@ -21,7 +22,8 @@ Complete installation instructions for the Self-Improving Memory MCP Server.
 
 Before installing, ensure you have:
 
-- **Node.js**: Version 18.x, 20.x, or 22.x
+- **Claude Code CLI**: Installed and configured
+- **Node.js**: Version 18.x or higher
 - **npm**: Version 8.x or higher
 - **Operating System**: Ubuntu, Windows, or macOS
 - **Disk Space**: ~500MB for dependencies and model (~90MB embedding model)
@@ -42,50 +44,47 @@ npm --version   # Should be 8.x or higher
 The fastest way to get started:
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/self-improving-memory-mcp.git
-cd self-improving-memory-mcp
+# 1. Install globally
+npm install -g @pytt0n/self-improving-memory-mcp
 
-# Run installation script
-chmod +x install.sh
-./install.sh
+# 2. Navigate to your Claude Code project
+cd /path/to/your/project
+
+# 3. Run installer
+memory-install
+
+# 4. Reload Claude Code window
 ```
 
-The install script will:
-1. Install all dependencies
-2. Run tests to verify installation
-3. Configure pre-commit hooks
-4. Display usage instructions
+The installer will:
+1. Detect your Claude Code project (.claude directory)
+2. Create backup of existing mcp.json
+3. Add memory server preserving existing configurations
+4. Update .gitignore
+5. Run verification tests
 
-### Manual Installation
+### Custom Install
 
-For more control over the installation process:
+To customize agents and configuration files:
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/your-username/self-improving-memory-mcp.git
-cd self-improving-memory-mcp
+# Install with --custom flag to copy files locally
+memory-install --custom
 
-# 2. Install dependencies
-npm install
-
-# 3. Verify installation
-npm test
-
-# 4. Set up pre-commit hooks (optional)
-npm run prepare
+# Files will be copied to:
+# .claude-mcp/agents/          ← Agent files (editable)
+# .claude-mcp/CLAUDE.md        ← Configuration (editable)
 ```
 
-### NPM Global Install
+**Clean mode (default):**
+- Uses plugin from node_modules
+- No files copied to your project
+- Updates via `npm update -g`
 
-Install globally to use from anywhere:
-
-```bash
-npm install -g self-improving-memory-mcp
-
-# Verify installation
-memory-cli --help
-```
+**Custom mode:**
+- Copies files to `.claude-mcp/`
+- Allows local customization
+- Project-specific changes
 
 ---
 
@@ -93,27 +92,28 @@ memory-cli --help
 
 ### MCP Server Configuration
 
-Add the server to your Claude Desktop configuration file:
+The installer automatically configures `.claude/mcp.json` in your project:
 
-**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-**Linux**: `~/.config/Claude/claude_desktop_config.json`
-**Windows**: `%APPDATA%/Claude/claude_desktop_config.json`
+**Configuration file**: `.claude/mcp.json`
 
 ```json
 {
   "mcpServers": {
-    "memory": {
+    "self-improving-memory": {
       "command": "node",
-      "args": ["/path/to/self-improving-memory-mcp/index.js"],
+      "args": ["/usr/local/lib/node_modules/@pytt0n/self-improving-memory-mcp/index.js"],
       "env": {
-        "LOG_LEVEL": "info"
+        "MEMORY_STORAGE_PATH": "/path/to/project/.claude/memory-storage"
       }
     }
   }
 }
 ```
 
-Replace `/path/to/self-improving-memory-mcp` with the actual path to your installation.
+The installer handles this automatically, including:
+- ✅ Preserving existing MCP servers
+- ✅ Creating backups before modifying
+- ✅ Using unique server name to avoid conflicts
 
 ### Environment Variables
 
