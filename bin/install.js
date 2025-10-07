@@ -169,6 +169,77 @@ function copyCommandFiles(projectPath) {
   }
 }
 
+// Copy statusline scripts to project .claude/lib
+function copyStatuslineScripts(projectPath) {
+  const sourceLibDir = path.join(__dirname, '..', '.claude', 'lib');
+  const targetLibDir = path.join(projectPath, '.claude', 'lib');
+
+  if (!fs.existsSync(sourceLibDir)) {
+    logWarning('Statusline scripts not found in package. Skipping...');
+    return;
+  }
+
+  // Check if .claude/lib exists
+  if (!fs.existsSync(targetLibDir)) {
+    fs.mkdirSync(targetLibDir, { recursive: true });
+    logInfo('Created .claude/lib directory');
+  }
+
+  const scripts = fs.readdirSync(sourceLibDir).filter(f => f.startsWith('statusline-'));
+  let copiedCount = 0;
+
+  scripts.forEach(script => {
+    const source = path.join(sourceLibDir, script);
+    const target = path.join(targetLibDir, script);
+
+    // Copy and make executable
+    fs.copyFileSync(source, target);
+    fs.chmodSync(target, 0o755);
+    copiedCount++;
+  });
+
+  if (copiedCount > 0) {
+    logSuccess(`Copied ${copiedCount} statusline script(s) to .claude/lib/`);
+  }
+}
+
+// Configure statusline in settings.json
+async function configureStatusline(projectPath) {
+  const settingsPath = path.join(projectPath, '.claude', 'settings.json');
+  let settings = {};
+
+  // Read existing settings
+  if (fs.existsSync(settingsPath)) {
+    try {
+      settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+      logInfo('Existing settings.json found');
+    } catch (error) {
+      logWarning('Could not parse existing settings.json, creating new one');
+    }
+  }
+
+  // Check if statusLine already configured
+  if (settings.statusLine) {
+    logInfo('Status line already configured');
+    const answer = await askQuestion('Update status line configuration? (y/n): ');
+    if (answer.toLowerCase() !== 'y' && answer.toLowerCase() !== 'yes') {
+      logInfo('Skipping status line configuration');
+      return;
+    }
+  }
+
+  // Configure statusline (use local copy)
+  settings.statusLine = {
+    type: 'command',
+    command: '.claude/lib/statusline-context-monitor.sh'
+  };
+
+  // Write settings
+  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+  logSuccess('Configured context monitor in status line');
+  logInfo('Tip: Edit .claude/settings.json to switch to advanced version or disable');
+}
+
 // Update or create Claude Code config (mcp.json)
 async function updateClaudeCodeConfig(projectPath) {
   log('\n📝 Claude Code Configuration', 'cyan');
@@ -368,6 +439,12 @@ async function install() {
   copyCommandFiles(projectPath);
   log('');
 
+  // Step 9: Copy statusline scripts and configure
+  log(`Step ${customMode ? '8' : '7'}: Setting up context monitor...`, 'yellow');
+  copyStatuslineScripts(projectPath);
+  await configureStatusline(projectPath);
+  log('');
+
   // Success message
   log('='.repeat(50), 'cyan');
   log('\n✅ Installation Complete!\n', 'green');
@@ -386,24 +463,41 @@ async function install() {
   }
 
   log('');
+  log('✨ Features Installed:', 'bright');
+  log('  • 🧠 Memory System    ← Automatic knowledge capture', 'cyan');
+  log('  • 📊 Context Monitor  ← Real-time token usage in status bar', 'cyan');
+  log('  • 💾 Anti-Compaction  ← Never lose context', 'cyan');
+  log('  • 🔍 Slash Commands   ← /mh, /checkpoint, etc.', 'cyan');
+  log('');
   log('Next steps:', 'bright');
   log('  1. Reload Claude Code window or restart', 'cyan');
-  log('  2. Verify tools are available:', 'cyan');
-  log('     "Claude, can you see the memory tools?"', 'cyan');
-  log('  3. Start using the memory system automatically!', 'cyan');
+  log('  2. Check status bar for context monitor: ✓ Context: X/200k (X%)', 'cyan');
+  log('  3. Verify memory tools: "Claude, can you see the memory tools?"', 'cyan');
+  log('  4. Start using the memory system automatically!', 'cyan');
   log('');
   log('Your project structure:', 'bright');
-  log('  • .claude-memory/  ← Vector database (auto-created)', 'blue');
+  log('  • .claude/settings.json     ← Status line configured', 'blue');
+  log('  • .claude/lib/              ← Context monitor scripts', 'blue');
+  log('  • .claude/commands/         ← Slash commands', 'blue');
+  log('  • .claude-memory/           ← Vector database (auto-created)', 'blue');
   if (customMode) {
-    log('  • .claude-mcp/     ← Plugin configuration (customizable)', 'blue');
+    log('  • .claude-mcp/              ← Plugin configuration (customizable)', 'blue');
   }
-  log('  • .gitignore       ← Updated to ignore memory data', 'blue');
+  log('  • .gitignore                ← Updated to ignore memory data', 'blue');
+  log('');
+  log('Status Line Configuration:', 'bright');
+  log('  • Simple version active by default', 'cyan');
+  log('  • To use advanced (with progress bar):', 'cyan');
+  log('    Edit .claude/settings.json:', 'dim');
+  log('    "command": ".claude/lib/statusline-context-advanced.sh"', 'dim');
+  log('  • To disable: Remove statusLine from settings.json', 'cyan');
   log('');
   log('Documentation:', 'bright');
+  log('  • Context Monitor: docs/CONTEXT_MONITOR.md', 'blue');
   log('  • README: https://github.com/SuperPiTT/self-improving-memory-mcp', 'blue');
   log('  • NPM: https://www.npmjs.com/package/@pytt0n/self-improving-memory-mcp', 'blue');
   log('');
-  log('🎉 Happy coding with infinite memory!', 'green');
+  log('🎉 Happy coding with infinite memory and context visibility!', 'green');
   log('');
 
   // Run verification
