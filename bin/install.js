@@ -285,11 +285,12 @@ async function configureSettings(projectPath) {
   }
 
   if (updateHooks) {
-    // Configure context guard hook
+    // Configure hooks
     if (!settings.hooks) {
       settings.hooks = {};
     }
 
+    // UserPromptSubmit: Context guard for automatic checkpoint
     settings.hooks.UserPromptSubmit = [
       {
         hooks: [
@@ -300,8 +301,36 @@ async function configureSettings(projectPath) {
         ]
       }
     ];
+
+    // PreToolUse: Agent start notifications (for Task tool)
+    settings.hooks.PreToolUse = [
+      {
+        matcher: 'Task',
+        hooks: [
+          {
+            type: 'command',
+            command: '.claude/hooks/agent-start.sh'
+          }
+        ]
+      }
+    ];
+
+    // PostToolUse: Agent completion notifications (for Task tool)
+    settings.hooks.PostToolUse = [
+      {
+        matcher: 'Task',
+        hooks: [
+          {
+            type: 'command',
+            command: '.claude/hooks/agent-complete.sh'
+          }
+        ]
+      }
+    ];
+
     logSuccess('Configured automatic checkpoint trigger at 80% context');
-    logInfo('Hook will inject checkpoint instruction when context reaches 160k tokens');
+    logSuccess('Configured agent visualization (start/complete notifications)');
+    logInfo('Hooks: context-guard, agent-start, agent-complete');
   }
 
   // Write settings
