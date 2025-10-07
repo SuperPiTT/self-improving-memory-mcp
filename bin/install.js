@@ -191,6 +191,12 @@ async function updateClaudeCodeConfig(projectPath) {
 
   const storagePath = path.join(projectPath, '.claude', 'memory-storage');
 
+  // Create memory-storage directory if it doesn't exist
+  if (!fs.existsSync(storagePath)) {
+    fs.mkdirSync(storagePath, { recursive: true });
+    logSuccess('Created memory-storage directory');
+  }
+
   // Add/update memory server with unique key
   config.mcpServers[serverKey] = {
     command: 'node',
