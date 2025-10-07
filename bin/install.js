@@ -143,6 +143,73 @@ function copyCLAUDEmd(projectPath) {
   logSuccess('Copied CLAUDE.md configuration to .claude-mcp/');
 }
 
+// Update or create Claude Code config (mcp.json)
+function updateClaudeCodeConfig(projectPath) {
+  log('\n📝 Claude Code Configuration', 'cyan');
+
+  // Check if .claude directory exists
+  const claudeDir = path.join(projectPath, '.claude');
+  if (!fs.existsSync(claudeDir)) {
+    logWarning('.claude directory not found - this may not be a Claude Code project');
+    logInfo('Skipping Claude Code configuration');
+    return false;
+  }
+
+  const mcpConfigPath = path.join(claudeDir, 'mcp.json');
+  logInfo(`Config path: ${mcpConfigPath}`);
+
+  // Read or create mcp.json
+  let config = { mcpServers: {} };
+  if (fs.existsSync(mcpConfigPath)) {
+    try {
+      config = JSON.parse(fs.readFileSync(mcpConfigPath, 'utf-8'));
+      logInfo('Existing mcp.json found');
+
+      // Backup existing config
+      const backupPath = `${mcpConfigPath}.backup-${Date.now()}`;
+      fs.copyFileSync(mcpConfigPath, backupPath);
+      logSuccess(`Backup created: ${backupPath}`);
+    } catch (error) {
+      logWarning('Could not parse existing mcp.json, creating new one');
+    }
+  }
+
+  // Add or update memory server
+  if (!config.mcpServers) {
+    config.mcpServers = {};
+  }
+
+  // Try to find the package (globally or locally)
+  let packagePath;
+  try {
+    const globalNodeModules = execSync('npm root -g', { encoding: 'utf-8' }).trim();
+    packagePath = path.join(globalNodeModules, '@pytt0n', 'self-improving-memory-mcp');
+
+    // If not found globally, try without scope
+    if (!fs.existsSync(packagePath)) {
+      packagePath = path.join(globalNodeModules, 'self-improving-memory-mcp');
+    }
+  } catch (error) {
+    logWarning('Could not find global npm modules, using relative path');
+    packagePath = path.join(__dirname, '..');
+  }
+
+  const storagePath = path.join(projectPath, '.claude', 'memory-storage');
+
+  config.mcpServers.memory = {
+    command: 'node',
+    args: [path.join(packagePath, 'index.js')],
+    env: {
+      MEMORY_STORAGE_PATH: storagePath
+    }
+  };
+
+  // Write updated config
+  fs.writeFileSync(mcpConfigPath, JSON.stringify(config, null, 2));
+  logSuccess('Updated Claude Code mcp.json');
+  return true;
+}
+
 // Update or create Claude Desktop config
 function updateClaudeConfig(projectPath) {
   const configPath = getClaudeConfigPath();
@@ -186,7 +253,7 @@ function updateClaudeConfig(projectPath) {
 
   // Get the path to the globally installed package
   const globalNodeModules = execSync('npm root -g', { encoding: 'utf-8' }).trim();
-  const packagePath = path.join(globalNodeModules, 'self-improving-memory-mcp');
+  const packagePath = path.join(globalNodeModules, '@pytt0n', 'self-improving-memory-mcp');
 
   config.mcpServers.memory = {
     command: 'node',
@@ -208,6 +275,7 @@ function updateGitignore(projectPath, customMode) {
     '',
     '# Self-Improving Memory MCP',
     '.claude-memory/',
+    '.claude/memory-storage/',
     'memory_data/',
     'cache/',
   ];
@@ -291,10 +359,18 @@ async function install() {
   updateGitignore(projectPath, customMode);
   log('');
 
-  // Step 7: Update Claude Desktop config
-  log(`Step ${customMode ? '6' : '5'}: Configuring Claude Desktop...`, 'yellow');
-  updateClaudeConfig(projectPath);
+  // Step 7: Try to configure Claude Code first
+  let claudeCodeConfigured = false;
+  log(`Step ${customMode ? '6' : '5'}: Configuring Claude Code...`, 'yellow');
+  claudeCodeConfigured = updateClaudeCodeConfig(projectPath);
   log('');
+
+  // Step 8: Update Claude Desktop config (if not Claude Code project)
+  if (!claudeCodeConfigured) {
+    log(`Step ${customMode ? '7' : '6'}: Configuring Claude Desktop...`, 'yellow');
+    updateClaudeConfig(projectPath);
+    log('');
+  }
 
   // Success message
   log('='.repeat(50), 'cyan');
