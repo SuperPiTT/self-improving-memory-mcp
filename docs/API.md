@@ -291,6 +291,684 @@ Generated: 2025-10-07T12:00:00.000Z
 
 ---
 
+### export_graph
+
+Export knowledge graph in various visualization formats.
+
+**Input Schema:**
+
+```json
+{
+  "format": "string"  // Optional: "html" | "json" | "dot" | "d3" | "cytoscape" (default: "html")
+}
+```
+
+**Example:**
+
+```javascript
+{
+  "format": "html"
+}
+```
+
+**Response (HTML format):**
+
+```json
+{
+  "content": [{
+    "type": "text",
+    "text": "Graph visualization exported to: /path/to/.claude-memory/knowledge-graph.html\nOpen this file in your browser to view the interactive graph."
+  }]
+}
+```
+
+**Response (Other formats):**
+
+```json
+{
+  "content": [{
+    "type": "text",
+    "text": "{\"nodes\": [...], \"edges\": [...]}"  // JSON/DOT/D3/Cytoscape format
+  }]
+}
+```
+
+**Supported Formats:**
+
+| Format | Description | Use Case |
+|--------|-------------|----------|
+| `html` | Interactive D3.js visualization | Explore graph in browser |
+| `json` | Raw graph data (nodes + edges) | Programmatic processing |
+| `dot` | GraphViz DOT format | Generate diagrams with GraphViz |
+| `d3` | D3.js-ready JSON structure | Custom D3 visualizations |
+| `cytoscape` | Cytoscape.js format | Integrate with Cytoscape |
+
+**Features:**
+- Interactive graph navigation (HTML)
+- Zoomable and pannable
+- Shows relationships between knowledge
+- Color-coded by type
+
+---
+
+### detect_contradictions
+
+Detect semantic contradictions in the knowledge base using vector similarity.
+
+**Input Schema:**
+
+```json
+{
+  "similarityThreshold": "number",    // Optional: 0-1 (default: 0.85)
+  "minConfidenceDelta": "number",     // Optional: 0-1 (default: 0.1)
+  "sameTypeOnly": "boolean"           // Optional: Check within same type only (default: false)
+}
+```
+
+**Example:**
+
+```javascript
+{
+  "similarityThreshold": 0.85,
+  "minConfidenceDelta": 0.1,
+  "sameTypeOnly": false
+}
+```
+
+**Response:**
+
+```json
+{
+  "content": [{
+    "type": "text",
+    "text": "{
+      \"detected\": 2,
+      \"contradictions\": [
+        {
+          \"entry1\": {
+            \"id\": \"550e8400-e29b-41d4-a716-446655440000\",
+            \"content\": \"Always use async/await\",
+            \"confidence\": 0.9
+          },
+          \"entry2\": {
+            \"id\": \"660e8400-e29b-41d4-a716-446655440001\",
+            \"content\": \"Callbacks are better for simple operations\",
+            \"confidence\": 0.7
+          },
+          \"similarity\": 0.87,
+          \"confidenceDelta\": 0.2,
+          \"reason\": \"High semantic similarity with conflicting advice\"
+        }
+      ]
+    }"
+  }]
+}
+```
+
+**Detection Algorithm:**
+1. Compare all entries using vector embeddings
+2. Flag pairs with high similarity (> threshold)
+3. Check if confidence scores differ significantly
+4. Optionally filter to same type only
+
+**Use Cases:**
+- Find conflicting decisions
+- Identify outdated knowledge
+- Clean up knowledge base
+
+---
+
+### auto_resolve_contradictions
+
+Automatically resolve detected contradictions by keeping higher-confidence entries.
+
+**Input Schema:**
+
+```json
+{
+  "similarityThreshold": "number"  // Optional: 0-1 (default: 0.85)
+}
+```
+
+**Example:**
+
+```javascript
+{
+  "similarityThreshold": 0.85
+}
+```
+
+**Response:**
+
+```json
+{
+  "content": [{
+    "type": "text",
+    "text": "{
+      \"resolved\": 2,
+      \"kept\": [
+        {
+          \"id\": \"550e8400-e29b-41d4-a716-446655440000\",
+          \"content\": \"Always use async/await\",
+          \"confidence\": 0.9
+        }
+      ],
+      \"superseded\": [
+        {
+          \"id\": \"660e8400-e29b-41d4-a716-446655440001\",
+          \"content\": \"Callbacks are better for simple operations\",
+          \"confidence\": 0.7,
+          \"supersededBy\": \"550e8400-e29b-41d4-a716-446655440000\"
+        }
+      ]
+    }"
+  }]
+}
+```
+
+**Resolution Strategy:**
+- Keeps entry with **higher confidence**
+- Marks lower-confidence entry as **superseded**
+- Preserves superseded entries for history
+- Creates link: `supersededBy` relationship
+
+**Safety:**
+- Non-destructive (keeps superseded entries)
+- Reversible via history
+- Confidence-based (objective criteria)
+
+---
+
+### get_superseded_history
+
+Get history of all superseded knowledge entries.
+
+**Input Schema:**
+
+```json
+{}  // No parameters required
+```
+
+**Response:**
+
+```json
+{
+  "content": [{
+    "type": "text",
+    "text": "{
+      \"superseded\": 3,
+      \"entries\": [
+        {
+          \"id\": \"660e8400-e29b-41d4-a716-446655440001\",
+          \"type\": \"decision\",
+          \"content\": \"Callbacks are better for simple operations\",
+          \"confidence\": 0.7,
+          \"supersededBy\": \"550e8400-e29b-41d4-a716-446655440000\",
+          \"supersededAt\": 1696809600000
+        }
+      ]
+    }"
+  }]
+}
+```
+
+**Use Cases:**
+- Audit knowledge evolution
+- Understand why decisions changed
+- Restore accidentally superseded entries
+- Track knowledge refinement over time
+
+---
+
+### analyze_patterns
+
+Analyze frequency patterns and trends in the knowledge base.
+
+**Input Schema:**
+
+```json
+{}  // No parameters required
+```
+
+**Response:**
+
+```json
+{
+  "content": [{
+    "type": "text",
+    "text": "{
+      \"typeDistribution\": {
+        \"decision\": 42,
+        \"solution\": 38,
+        \"error\": 15,
+        \"pattern\": 10,
+        \"insight\": 5
+      },
+      \"tagFrequency\": {
+        \"api\": 25,
+        \"authentication\": 18,
+        \"database\": 15
+      },
+      \"confidenceTrend\": {
+        \"avgConfidence\": 0.78,
+        \"recentImprovement\": true,
+        \"highConfidenceRatio\": 0.65
+      },
+      \"temporalPatterns\": {
+        \"entriesLast7Days\": 12,
+        \"entriesLast30Days\": 45,
+        \"mostActiveDay\": \"2025-10-05\"
+      },
+      \"commonThemes\": [
+        {
+          \"theme\": \"API resilience\",
+          \"frequency\": 15,
+          \"avgConfidence\": 0.85
+        }
+      ]
+    }"
+  }]
+}
+```
+
+**Metrics Provided:**
+- Type distribution
+- Tag frequency analysis
+- Confidence trends
+- Temporal patterns
+- Common themes detection
+
+**Use Cases:**
+- Understand knowledge focus areas
+- Identify knowledge gaps
+- Track learning progress
+- Guide future documentation
+
+---
+
+### generate_insights
+
+Generate AI-powered insights and recommendations from knowledge patterns.
+
+**Input Schema:**
+
+```json
+{
+  "similarityThreshold": "number",  // Optional: 0-1 (default: 0.75)
+  "minClusterSize": "number"        // Optional: Minimum cluster size (default: 2)
+}
+```
+
+**Example:**
+
+```javascript
+{
+  "similarityThreshold": 0.75,
+  "minClusterSize": 2
+}
+```
+
+**Response:**
+
+```json
+{
+  "content": [{
+    "type": "text",
+    "text": "{
+      \"clusters\": 5,
+      \"insights\": [
+        {
+          \"type\": \"knowledge_gap\",
+          \"description\": \"Many errors about database connections but no documented solutions\",
+          \"recommendation\": \"Create solution entries for common database error patterns\",
+          \"priority\": \"high\"
+        },
+        {
+          \"type\": \"consolidation_opportunity\",
+          \"description\": \"15 similar decisions about API design scattered across entries\",
+          \"recommendation\": \"Consolidate into a single comprehensive API design pattern\",
+          \"priority\": \"medium\"
+        },
+        {
+          \"type\": \"confidence_issue\",
+          \"description\": \"Recent entries have lower confidence than older ones\",
+          \"recommendation\": \"Review and verify recent additions\",
+          \"priority\": \"medium\"
+        }
+      ],
+      \"recommendations\": [
+        \"Focus on documenting database solutions\",
+        \"Create comprehensive patterns from scattered decisions\",
+        \"Review verification process for recent entries\"
+      ]
+    }"
+  }]
+}
+```
+
+**Insight Types:**
+- **knowledge_gap**: Missing documentation areas
+- **consolidation_opportunity**: Duplicate/similar content
+- **confidence_issue**: Low-confidence entries
+- **emerging_pattern**: New trends detected
+- **contradiction**: Conflicting information
+
+---
+
+### detect_antipatterns
+
+Detect anti-patterns in the knowledge base (low confidence, unverified, rarely accessed).
+
+**Input Schema:**
+
+```json
+{}  // No parameters required
+```
+
+**Response:**
+
+```json
+{
+  "content": [{
+    "type": "text",
+    "text": "{
+      \"found\": 3,
+      \"antiPatterns\": [
+        {
+          \"type\": \"low_confidence_unverified\",
+          \"count\": 5,
+          \"description\": \"Entries with confidence < 0.5 and unverified\",
+          \"entries\": [
+            {
+              \"id\": \"770e8400-e29b-41d4-a716-446655440002\",
+              \"content\": \"Maybe try caching?\",
+              \"confidence\": 0.4,
+              \"verified\": false
+            }
+          ],
+          \"recommendation\": \"Verify or remove these low-confidence entries\"
+        },
+        {
+          \"type\": \"never_accessed\",
+          \"count\": 8,
+          \"description\": \"Entries never accessed in 30+ days\",
+          \"recommendation\": \"Review relevance of unused knowledge\"
+        },
+        {
+          \"type\": \"orphaned_entries\",
+          \"count\": 3,
+          \"description\": \"Entries with no relationships to other knowledge\",
+          \"recommendation\": \"Link to related knowledge or remove if irrelevant\"
+        }
+      ]
+    }"
+  }]
+}
+```
+
+**Anti-Pattern Types:**
+- `low_confidence_unverified`: Unreliable knowledge
+- `never_accessed`: Unused entries
+- `orphaned_entries`: Isolated knowledge
+- `outdated`: Old, unupdated entries
+- `contradictory`: Conflicting with higher-confidence knowledge
+
+**Use Cases:**
+- Knowledge base cleanup
+- Quality assurance
+- Identify entries to review or remove
+
+---
+
+### suggest_tags
+
+Get intelligent tag suggestions based on content clustering.
+
+**Input Schema:**
+
+```json
+{
+  "similarityThreshold": "number"  // Optional: 0-1 (default: 0.75)
+}
+```
+
+**Example:**
+
+```javascript
+{
+  "similarityThreshold": 0.75
+}
+```
+
+**Response:**
+
+```json
+{
+  "content": [{
+    "type": "text",
+    "text": "{
+      \"suggestions\": 4,
+      \"tags\": [
+        {
+          \"tag\": \"api-resilience\",
+          \"confidence\": 0.85,
+          \"relatedContent\": [
+            \"Retry with exponential backoff\",
+            \"Circuit breaker pattern\",
+            \"Timeout configuration\"
+          ],
+          \"reasoning\": \"Common theme in 12 entries about API reliability\"
+        },
+        {
+          \"tag\": \"database-optimization\",
+          \"confidence\": 0.78,
+          \"relatedContent\": [
+            \"Use connection pooling\",
+            \"Index frequently queried columns\"
+          ],
+          \"reasoning\": \"Cluster of 8 entries about database performance\"
+        }
+      ]
+    }"
+  }]
+}
+```
+
+**Algorithm:**
+1. Cluster similar content using embeddings
+2. Extract common themes from clusters
+3. Generate descriptive tag names
+4. Rank by cluster size and coherence
+
+**Use Cases:**
+- Improve knowledge organization
+- Discover implicit themes
+- Standardize tagging across knowledge base
+
+---
+
+### cluster_knowledge
+
+Cluster knowledge entries by semantic similarity.
+
+**Input Schema:**
+
+```json
+{
+  "similarityThreshold": "number",  // Optional: 0-1 (default: 0.75)
+  "minClusterSize": "number",       // Optional: Minimum entries per cluster (default: 2)
+  "maxClusters": "number"           // Optional: Maximum clusters to return (default: 10)
+}
+```
+
+**Example:**
+
+```javascript
+{
+  "similarityThreshold": 0.75,
+  "minClusterSize": 2,
+  "maxClusters": 10
+}
+```
+
+**Response:**
+
+```json
+{
+  "content": [{
+    "type": "text",
+    "text": "{
+      \"clustersFound\": 3,
+      \"clusters\": [
+        {
+          \"size\": 8,
+          \"avgConfidence\": 0.82,
+          \"types\": [\"solution\", \"pattern\"],
+          \"tags\": [\"api\", \"resilience\", \"retry\"],
+          \"centroid\": {
+            \"id\": \"550e8400-e29b-41d4-a716-446655440000\",
+            \"content\": \"Use retry with exponential backoff for API calls...\"
+          }
+        }
+      ]
+    }"
+  }]
+}
+```
+
+**Clustering Algorithm:**
+- Hierarchical clustering using vector embeddings
+- Similarity threshold controls cluster tightness
+- Returns cluster metadata (size, confidence, tags)
+- Identifies most representative entry (centroid)
+
+**Use Cases:**
+- Discover knowledge patterns
+- Organize related knowledge
+- Find duplicates or near-duplicates
+- Understand knowledge structure
+
+---
+
+### get_cache_stats
+
+Get statistics about the embedding cache.
+
+**Input Schema:**
+
+```json
+{}  // No parameters required
+```
+
+**Response:**
+
+```json
+{
+  "content": [{
+    "type": "text",
+    "text": "{
+      \"size\": 156,
+      \"hits\": 423,
+      \"misses\": 89,
+      \"hitRate\": 0.826,
+      \"memoryUsage\": \"2.4 MB\",
+      \"oldestEntry\": 1696723200000,
+      \"newestEntry\": 1696809600000
+    }"
+  }]
+}
+```
+
+**Cache Metrics:**
+- **size**: Number of cached embeddings
+- **hits**: Cache hits (embeddings reused)
+- **misses**: Cache misses (embeddings generated)
+- **hitRate**: Hit rate percentage (efficiency)
+- **memoryUsage**: Approximate memory used
+- **oldestEntry**: Timestamp of oldest cached entry
+- **newestEntry**: Timestamp of newest cached entry
+
+**Use Cases:**
+- Monitor cache performance
+- Optimize cache size
+- Understand embedding reuse patterns
+
+---
+
+### clear_cache
+
+Clear the embedding cache (useful for troubleshooting or memory management).
+
+**Input Schema:**
+
+```json
+{}  // No parameters required
+```
+
+**Response:**
+
+```json
+{
+  "content": [{
+    "type": "text",
+    "text": "Cache cleared successfully"
+  }]
+}
+```
+
+**Effects:**
+- Removes all cached embeddings from memory
+- Next searches will regenerate embeddings
+- Temporary performance decrease until cache rebuilds
+- Does not affect stored knowledge (only cache)
+
+**When to Use:**
+- Cache corruption suspected
+- Memory usage too high
+- Testing performance without cache
+- After model updates
+
+---
+
+### persist_cache
+
+Persist the embedding cache to disk for faster startup.
+
+**Input Schema:**
+
+```json
+{}  // No parameters required
+```
+
+**Response:**
+
+```json
+{
+  "content": [{
+    "type": "text",
+    "text": "Cache persisted to disk successfully"
+  }]
+}
+```
+
+**Behavior:**
+- Saves cache to `.claude-memory/cache/embeddings.cache`
+- Auto-loads on next startup
+- Reduces cold-start time significantly
+- Safe to call periodically
+
+**Benefits:**
+- Faster startup (no re-embedding needed)
+- Preserves cache across restarts
+- Improves performance consistency
+
+**Recommended Usage:**
+- After large batch imports
+- Before system shutdown
+- Periodically during heavy use
+
+---
+
 ## JavaScript API
 
 ### KnowledgeStore

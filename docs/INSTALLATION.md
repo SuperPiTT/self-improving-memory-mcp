@@ -93,10 +93,11 @@ memory-cli --help
 
 ### MCP Server Configuration
 
-Add the server to your Claude Desktop configuration:
+Add the server to your Claude Desktop configuration file:
 
-**macOS/Linux**: `~/.config/claude/config.json`
-**Windows**: `%APPDATA%\Claude\config.json`
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Linux**: `~/.config/Claude/claude_desktop_config.json`
+**Windows**: `%APPDATA%/Claude/claude_desktop_config.json`
 
 ```json
 {
@@ -313,8 +314,8 @@ npm uninstall -g self-improving-memory-mcp
 cd /path/to/self-improving-memory-mcp
 rm -rf node_modules .claude-memory
 
-# Remove from Claude config
-# Edit ~/.config/claude/config.json and remove "memory" server
+# Remove from Claude Desktop config
+# Edit claude_desktop_config.json (see paths in Configuration section) and remove "memory" server
 ```
 
 ---

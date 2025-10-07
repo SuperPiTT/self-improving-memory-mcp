@@ -1,21 +1,38 @@
-# MCP Commands Reference
+# Commands Reference
 
-Quick reference guide for all MCP server commands and CLI tools.
+Complete reference for all three command interfaces: MCP Tools, CLI Commands, and Slash Commands.
+
+---
+
+## Overview
+
+This system provides **three ways** to interact with the knowledge base:
+
+| Interface | Use Case | Example |
+|-----------|----------|---------|
+| **MCP Tools** | Claude Desktop conversations | "Search for API solutions" |
+| **CLI Commands** | Terminal/scripts | `memory-cli search "API solutions"` |
+| **Slash Commands** | Quick shortcuts in Claude Code | `/checkpoint`, `/memory-help` |
 
 ---
 
 ## Table of Contents
 
-- [MCP Server Commands](#mcp-server-commands)
-- [Memory CLI Commands](#memory-cli-commands)
+- [MCP Tools](#mcp-tools) - Use in Claude Desktop
+- [CLI Commands](#cli-commands) - Use in terminal
+- [Slash Commands](#slash-commands) - Quick shortcuts
 - [Common Workflows](#common-workflows)
 - [Command Examples](#command-examples)
 
 ---
 
-## MCP Server Commands
+## MCP Tools
 
-Use these commands through Claude Desktop or any MCP client.
+**Interface:** Claude Desktop or any MCP client
+**Usage:** Natural language requests to Claude
+**Total Tools:** 17
+
+### Core Tools (5)
 
 ### save_knowledge
 
@@ -148,9 +165,40 @@ Export knowledge base to markdown
 
 ---
 
-## Memory CLI Commands
+### Advanced Analytics Tools (12)
 
-Use the CLI tool for direct command-line access.
+For detailed documentation of these tools, see [API.md](./API.md#mcp-tools).
+
+| Tool | Purpose |
+|------|---------|
+| `export_graph` | Export knowledge graph (HTML, JSON, DOT, D3, Cytoscape) |
+| `detect_contradictions` | Find conflicting knowledge entries |
+| `auto_resolve_contradictions` | Resolve conflicts by confidence |
+| `get_superseded_history` | View knowledge evolution |
+| `analyze_patterns` | Frequency and trend analysis |
+| `generate_insights` | AI-powered recommendations |
+| `detect_antipatterns` | Quality assurance checks |
+| `suggest_tags` | Intelligent tag suggestions |
+| `cluster_knowledge` | Semantic clustering |
+| `get_cache_stats` | Embedding cache metrics |
+| `clear_cache` | Reset embedding cache |
+| `persist_cache` | Save cache to disk |
+
+**Usage Example:**
+```
+# Natural language in Claude Desktop
+"Detect contradictions in the knowledge base"
+"Generate insights from my knowledge"
+"Export the knowledge graph as HTML"
+```
+
+---
+
+## CLI Commands
+
+**Interface:** Terminal/Command Line
+**Usage:** Direct command execution
+**Command:** `memory-cli` or `node memory-cli.js`
 
 ### Installation
 
@@ -267,6 +315,89 @@ memory-cli link \
 - `--source=<id>` - Source entry ID
 - `--target=<id>` - Target entry ID
 - `--relationship=<type>` - Relationship type
+
+---
+
+---
+
+## Slash Commands
+
+**Interface:** Claude Code conversations
+**Usage:** Type `/command` in chat
+**Total Commands:** 3 (2 unique + 1 alias)
+
+### /checkpoint
+
+**Purpose:** Manually save current session state before context gets too long.
+
+**Usage:**
+```
+/checkpoint
+/checkpoint [optional-description]
+```
+
+**When to use:**
+- Before taking a break from work
+- When context is getting long (approaching 80% token usage)
+- Before starting risky/complex work
+- At natural breakpoints (milestone completed)
+- When you want to continue later in a fresh conversation
+
+**What it does:**
+1. Captures complete session state (decisions, files, tasks, context)
+2. Saves to memory as checkpoint entity
+3. Generates continuation summary for resuming
+4. Preserves TodoWrite state
+
+**Example:**
+```
+/checkpoint before implementing authentication
+```
+
+**After checkpoint:**
+- Receive confirmation state is saved
+- Get continuation summary to copy
+- Start fresh conversation when ready
+- Paste summary → Context Recovery Agent auto-loads full state
+
+---
+
+### /memory-help (or /mh)
+
+**Purpose:** Launch interactive Memory Guide agent for system help.
+
+**Usage:**
+```
+/memory-help
+/mh
+```
+
+**What it shows:**
+- Table of all available agents
+- When to activate each agent
+- Typical workflow patterns
+- Current memory stats
+- Anti-compaction system explanation
+
+**Example output:**
+```
+🤖 AVAILABLE AGENTS
+═══════════════════════════════════════════════════════════════════
+
+Agent                    | When to Activate              | Purpose
+─────────────────────────┼───────────────────────────────┼─────────────────
+💬 User Intent Capture   | User writes request           | Capture intent
+🔍 Pattern Recognition   | BEFORE any task               | Find past knowledge
+❌ Error Detection       | Error occurs                  | Capture errors
+✅ Solution Capture      | Problem solved                | Save solutions
+...
+```
+
+**When to use:**
+- First time using the system
+- Forgot which agent does what
+- Want to see memory stats
+- Need workflow reminders
 
 ---
 

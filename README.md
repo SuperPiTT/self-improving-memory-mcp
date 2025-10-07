@@ -28,47 +28,10 @@ memory-install
 
 **That's it!** The memory system is now active in your project.
 
+> **Clean install by default:** No files are copied to your project. The plugin runs from `node_modules`.
+> **Want to customize?** Run `memory-install --custom` to copy files to `.claude-mcp/` for editing.
+
 📖 **[Quick Install Guide](QUICK-INSTALL.md)** | **[Full Installation Guide](docs/INSTALLATION.md)**
-
-### Alternative Methods
-
-<details>
-<summary><b>Install from GitHub (without NPM account)</b></summary>
-
-```bash
-# Clone and link globally
-git clone https://github.com/SuperPiTT/self-improving-memory-mcp.git
-cd self-improving-memory-mcp
-npm install
-npm link
-
-# Configure your project
-cd /path/to/your/project
-memory-install
-
-# Restart Claude Desktop
-```
-
-📖 **[Complete guide for GitHub installation](INSTALL-WITHOUT-NPM.md)**
-</details>
-
-<details>
-<summary><b>NPX from GitHub (one command)</b></summary>
-
-```bash
-cd /path/to/your/project
-npx github:SuperPiTT/self-improving-memory-mcp memory-install
-```
-</details>
-
-<details>
-<summary><b>NPX from NPM (when published)</b></summary>
-
-```bash
-cd /path/to/your/project
-npx @pytt0n/self-improving-memory-mcp memory-install
-```
-</details>
 
 ---
 
@@ -217,7 +180,7 @@ memory-cli export
 ┌────────────────▼────────────────────────────────┐
 │  MCP Server (index.js)                          │
 │  • API Layer                                    │
-│  • 8 herramientas MCP                           │
+│  • 17 herramientas MCP                          │
 └────────────────┬────────────────────────────────┘
                  │
 ┌────────────────▼────────────────────────────────┐
@@ -240,53 +203,41 @@ memory-cli export
 
 ## 📦 Estructura del Proyecto
 
+### En tu proyecto (después de instalar):
+
 ```
-self-improve-claude/
-├── README.md                    # Este archivo
-├── ROADMAP.md                   # Plan de mejoras futuras
-├── package.json
-│
-├── index.js                     # MCP Server (~400 líneas)
-├── memory-cli.js                # CLI Tool (~300 líneas)
-├── vector-store.js              # Vector storage (~250 líneas)
-│
-├── .claude/
-│   ├── CLAUDE.md               # Instrucciones para Claude
-│   ├── settings.local.json     # Permisos auto-aprobados
-│   │
-│   ├── agents/                 # 10 agentes automáticos
-│   │   ├── pattern-recognition.md
-│   │   ├── error-detector.md
-│   │   ├── solution-capture.md
-│   │   ├── decision-tracker.md
-│   │   ├── confidence-evaluator.md
-│   │   ├── user-intent-capture.md
-│   │   ├── style-preferences.md
-│   │   ├── session-context.md
-│   │   ├── pre-compact-interceptor.md
-│   │   └── context-recovery.md
-│   │
-│   └── commands/               # Slash commands
-│       ├── memory-stats.md
-│       ├── memory-search.md
-│       ├── checkpoint.md
-│       └── mh.md               # Menú de ayuda
-│
-├── docs/                       # Documentación organizada
-│   ├── INSTALLATION.md         # Guía de instalación completa
-│   ├── AGENTS.md               # Documentación de agentes
-│   ├── ARCHITECTURE.md         # Diseño del sistema
-│   ├── ANTI-COMPACTION.md      # Sistema de preservación de contexto
-│   ├── COMMANDS.md             # Referencia de comandos
-│   ├── API.md                  # Referencia de herramientas MCP
-│   └── BEST-PRACTICES.md       # Mejores prácticas de uso
-│
-├── tests/                      # Tests (en desarrollo)
-│   └── README.md
-│
-└── .claude-memory/             # Base de datos (auto-creada)
+tu-proyecto/
+├── tu-codigo/                  # Tu código existente
+├── .gitignore                  # Actualizado automáticamente
+└── .claude-memory/             # Base de datos vectorial (auto-creada)
     └── vectors/
-        └── lancedb/            # Almacenamiento vectorial
+        └── lancedb/
+```
+
+**Modo clean (default):** CERO archivos del plugin en tu proyecto. Todo funciona desde `node_modules`.
+
+**Modo custom (`--custom`):** Agrega `.claude-mcp/` con agentes editables.
+
+### Estructura del package NPM:
+
+```
+@pytt0n/self-improving-memory-mcp/
+├── index.js                    # MCP Server (~400 líneas)
+├── memory-cli.js               # CLI Tool (~300 líneas)
+├── bin/install.js              # Instalador interactivo
+│
+├── .claude/                    # Archivos de configuración
+│   ├── CLAUDE.md              # Instrucciones para Claude
+│   ├── agents/                # 10 agentes automáticos
+│   └── commands/              # Slash commands
+│
+├── src/                        # Código fuente modular
+│   ├── knowledge-store.js
+│   ├── vector-store.js
+│   └── utils/
+│
+├── docs/                       # Documentación completa
+└── tests/                      # 263 tests (>85% coverage)
 ```
 
 > **Nota:** Mantenemos archivos <500 líneas siguiendo principios SOLID y organización modular.
@@ -330,6 +281,28 @@ Ver **[ROADMAP.md](ROADMAP.md)** para el plan completo de mejoras futuras.
 ---
 
 ## 🔧 Actualizaciones Recientes
+
+### v2.0.1 (2025-10-07): Documentación Completa + Correcciones
+
+**✅ Documentación al 100%:**
+- 📝 **CHANGELOG.md**: Guía completa de migración v1.x → v2.0
+- ⚡ **docs/PERFORMANCE.md**: Benchmarks reales (263 tests, métricas detalladas)
+- 🔧 **docs/INSTALLATION.md**: Paths de configuración corregidos
+- 📖 **docs/COMMANDS.md**: Reorganizado (MCP Tools / CLI / Slash Commands)
+- ✅ **docs/API.md**: 17/17 herramientas documentadas
+
+**🐛 Correcciones:**
+- Fixed Claude Desktop config paths (macOS/Linux/Windows)
+- Slash commands `/checkpoint` y `/memory-help` documentados
+- Tool count corregido en README y QUICK-INSTALL
+
+**📊 Estado:**
+- Calidad de documentación: **100%** ✅
+- Listo para publicación profesional
+
+📖 **[Ver CHANGELOG completo](CHANGELOG.md)**
+
+---
 
 ### 2025-10-07: Corrección Crítica del Sistema Anti-Compactación
 

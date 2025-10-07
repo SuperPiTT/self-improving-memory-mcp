@@ -91,24 +91,24 @@ function checkNodeVersion() {
   logSuccess(`Node.js ${version} detected`);
 }
 
-// Create .claude directory in project
+// Create .claude-mcp directory in project (for custom mode)
 function createClaudeDirectory(projectPath) {
-  const claudeDir = path.join(projectPath, '.claude');
+  const claudeDir = path.join(projectPath, '.claude-mcp');
 
   if (!fs.existsSync(claudeDir)) {
     fs.mkdirSync(claudeDir, { recursive: true });
-    logSuccess('Created .claude directory');
+    logSuccess('Created .claude-mcp directory');
   } else {
-    logInfo('.claude directory already exists');
+    logInfo('.claude-mcp directory already exists');
   }
 
   return claudeDir;
 }
 
-// Copy agent files to project
+// Copy agent files to project (custom mode)
 function copyAgentFiles(projectPath) {
   const sourceAgentsDir = path.join(__dirname, '..', '.claude', 'agents');
-  const targetAgentsDir = path.join(projectPath, '.claude', 'agents');
+  const targetAgentsDir = path.join(projectPath, '.claude-mcp', 'agents');
 
   if (!fs.existsSync(sourceAgentsDir)) {
     logWarning('Agent files not found in package. Skipping...');
@@ -126,13 +126,13 @@ function copyAgentFiles(projectPath) {
     fs.copyFileSync(source, target);
   });
 
-  logSuccess(`Copied ${agents.length} agent files`);
+  logSuccess(`Copied ${agents.length} agent files to .claude-mcp/agents/`);
 }
 
-// Copy CLAUDE.md to project
+// Copy CLAUDE.md to project (custom mode)
 function copyCLAUDEmd(projectPath) {
   const sourceCLAUDE = path.join(__dirname, '..', '.claude', 'CLAUDE.md');
-  const targetCLAUDE = path.join(projectPath, '.claude', 'CLAUDE.md');
+  const targetCLAUDE = path.join(projectPath, '.claude-mcp', 'CLAUDE.md');
 
   if (!fs.existsSync(sourceCLAUDE)) {
     logWarning('CLAUDE.md not found in package. Skipping...');
@@ -140,7 +140,7 @@ function copyCLAUDEmd(projectPath) {
   }
 
   fs.copyFileSync(sourceCLAUDE, targetCLAUDE);
-  logSuccess('Copied CLAUDE.md configuration');
+  logSuccess('Copied CLAUDE.md configuration to .claude-mcp/');
 }
 
 // Update or create Claude Desktop config
@@ -202,7 +202,7 @@ function updateClaudeConfig(projectPath) {
 }
 
 // Create .gitignore entries
-function updateGitignore(projectPath) {
+function updateGitignore(projectPath, customMode) {
   const gitignorePath = path.join(projectPath, '.gitignore');
   const entries = [
     '',
@@ -210,26 +210,44 @@ function updateGitignore(projectPath) {
     '.claude-memory/',
     'memory_data/',
     'cache/',
-  ].join('\n');
+  ];
+
+  // Add .claude-mcp/ only in custom mode
+  if (customMode) {
+    entries.push('.claude-mcp/');
+  }
+
+  const entryText = entries.join('\n');
 
   if (fs.existsSync(gitignorePath)) {
     const content = fs.readFileSync(gitignorePath, 'utf-8');
     if (!content.includes('.claude-memory/')) {
-      fs.appendFileSync(gitignorePath, entries);
+      fs.appendFileSync(gitignorePath, entryText);
       logSuccess('Updated .gitignore');
     } else {
       logInfo('.gitignore already configured');
     }
   } else {
-    fs.writeFileSync(gitignorePath, entries);
+    fs.writeFileSync(gitignorePath, entryText);
     logSuccess('Created .gitignore');
   }
 }
 
 // Main installation flow
 async function install() {
+  // Check for --custom flag
+  const customMode = process.argv.includes('--custom');
+
   log('\n🧠 Self-Improving Memory MCP - Installation\n', 'bright');
   log('='.repeat(50), 'cyan');
+  log('');
+
+  if (customMode) {
+    log('📦 Custom Mode: Files will be copied for customization', 'yellow');
+  } else {
+    log('🚀 Clean Mode: Using plugin from node_modules (no file copy)', 'cyan');
+    log('   Tip: Use --custom flag to copy files for customization', 'blue');
+  }
   log('');
 
   // Step 1: Check Node.js version
@@ -251,40 +269,67 @@ async function install() {
   }
   log('');
 
-  // Step 4: Create .claude directory
-  log('Step 3: Setting up .claude directory...', 'yellow');
-  createClaudeDirectory(projectPath);
-  log('');
+  // Step 4: Create .claude-mcp directory (only in custom mode)
+  if (customMode) {
+    log('Step 3: Setting up .claude-mcp directory...', 'yellow');
+    createClaudeDirectory(projectPath);
+    log('');
 
-  // Step 5: Copy agent files
-  log('Step 4: Installing agent files...', 'yellow');
-  copyAgentFiles(projectPath);
-  copyCLAUDEmd(projectPath);
-  log('');
+    // Step 5: Copy agent files
+    log('Step 4: Installing agent files...', 'yellow');
+    copyAgentFiles(projectPath);
+    copyCLAUDEmd(projectPath);
+    log('');
+  } else {
+    log('Step 3: Skipping file copy (clean mode)...', 'yellow');
+    logSuccess('Plugin will be used directly from node_modules');
+    log('');
+  }
 
   // Step 6: Update .gitignore
-  log('Step 5: Configuring .gitignore...', 'yellow');
-  updateGitignore(projectPath);
+  log(`Step ${customMode ? '5' : '4'}: Configuring .gitignore...`, 'yellow');
+  updateGitignore(projectPath, customMode);
   log('');
 
   // Step 7: Update Claude Desktop config
-  log('Step 6: Configuring Claude Desktop...', 'yellow');
+  log(`Step ${customMode ? '6' : '5'}: Configuring Claude Desktop...`, 'yellow');
   updateClaudeConfig(projectPath);
   log('');
 
   // Success message
   log('='.repeat(50), 'cyan');
   log('\n✅ Installation Complete!\n', 'green');
+
+  if (customMode) {
+    log('📦 Custom Mode Installed:', 'bright');
+    log('  • Files copied to .claude-mcp/ directory', 'cyan');
+    log('  • You can edit agents and configuration', 'cyan');
+    log('  • Changes will be used by this project only', 'cyan');
+  } else {
+    log('🚀 Clean Mode Installed:', 'bright');
+    log('  • Using plugin directly from node_modules', 'cyan');
+    log('  • Zero files added to your project', 'cyan');
+    log('  • Updates via: npm update -g @pytt0n/self-improving-memory-mcp', 'cyan');
+    log('  • To customize: run "memory-install --custom"', 'blue');
+  }
+
+  log('');
   log('Next steps:', 'bright');
   log('  1. Restart Claude Desktop completely', 'cyan');
   log('  2. Open Claude and verify tools are available:', 'cyan');
   log('     "Claude, can you see the memory tools?"', 'cyan');
   log('  3. Start using the memory system automatically!', 'cyan');
   log('');
+  log('Your project structure:', 'bright');
+  log('  • .claude-memory/  ← Vector database (auto-created)', 'blue');
+  if (customMode) {
+    log('  • .claude-mcp/     ← Plugin configuration (customizable)', 'blue');
+  }
+  log('  • .gitignore       ← Updated to ignore memory data', 'blue');
+  log('');
   log('Documentation:', 'bright');
-  log('  • README: https://github.com/your-repo/README.md', 'blue');
-  log('  • Agents: Check .claude/agents/ folder', 'blue');
-  log('  • Config: Check .claude/CLAUDE.md', 'blue');
+  log('  • README: https://github.com/SuperPiTT/self-improving-memory-mcp', 'blue');
+  log('  • NPM: https://www.npmjs.com/package/@pytt0n/self-improving-memory-mcp', 'blue');
   log('');
   log('🎉 Happy coding with infinite memory!', 'green');
   log('');

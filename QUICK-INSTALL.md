@@ -13,15 +13,23 @@ npm install -g @pytt0n/self-improving-memory-mcp
 # Navigate to your project
 cd /path/to/your/project
 
-# Run installer
+# Run installer (clean mode - no file copy)
 memory-install
+
+# OR run with custom mode (copies files for editing)
+memory-install --custom
 ```
 
-That's it! The installer will:
-- ✅ Create `.claude/` directory with agents
-- ✅ Update Claude Desktop config
-- ✅ Configure `.gitignore`
-- ✅ Set up memory system
+**Clean Mode (default):**
+- ✅ Updates Claude Desktop config
+- ✅ Configures `.gitignore`
+- ✅ Uses plugin from `node_modules`
+- ✅ **Zero files added to your project**
+
+**Custom Mode (`--custom`):**
+- ✅ Everything from clean mode
+- ✅ Copies files to `.claude-mcp/` for customization
+- ✅ Edit agents and configuration per project
 
 **Next:** Restart Claude Desktop and start coding!
 
@@ -60,7 +68,7 @@ After installation, restart Claude Desktop and ask:
 "Claude, can you see the memory tools?"
 ```
 
-You should see 18 MCP tools available, including:
+You should see 17 MCP tools available, including:
 - `save_knowledge`
 - `search_knowledge`
 - `detect_contradictions`
@@ -94,19 +102,23 @@ your-project/
 
 ### In Claude Desktop Config:
 
+The installer automatically adds this to your Claude Desktop config:
+
 ```json
 {
   "mcpServers": {
     "memory": {
       "command": "node",
-      "args": ["/path/to/package/index.js"],
+      "args": ["/usr/local/lib/node_modules/@pytt0n/self-improving-memory-mcp/index.js"],
       "env": {
-        "PROJECT_PATH": "/path/to/your/project"
+        "PROJECT_PATH": "/absolute/path/to/your/project"
       }
     }
   }
 }
 ```
+
+**Note:** The plugin runs from `node_modules`, NOT from your project directory.
 
 ---
 
