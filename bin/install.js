@@ -203,8 +203,42 @@ function copyStatuslineScripts(projectPath) {
   }
 }
 
-// Configure statusline in settings.json
-async function configureStatusline(projectPath) {
+// Copy hook scripts to project .claude/hooks
+function copyHooks(projectPath) {
+  const sourceHooksDir = path.join(__dirname, '..', '.claude', 'hooks');
+  const targetHooksDir = path.join(projectPath, '.claude', 'hooks');
+
+  if (!fs.existsSync(sourceHooksDir)) {
+    logWarning('Hook scripts not found in package. Skipping...');
+    return;
+  }
+
+  // Check if .claude/hooks exists
+  if (!fs.existsSync(targetHooksDir)) {
+    fs.mkdirSync(targetHooksDir, { recursive: true });
+    logInfo('Created .claude/hooks directory');
+  }
+
+  const hooks = fs.readdirSync(sourceHooksDir);
+  let copiedCount = 0;
+
+  hooks.forEach(hook => {
+    const source = path.join(sourceHooksDir, hook);
+    const target = path.join(targetHooksDir, hook);
+
+    // Copy and make executable
+    fs.copyFileSync(source, target);
+    fs.chmodSync(target, 0o755);
+    copiedCount++;
+  });
+
+  if (copiedCount > 0) {
+    logSuccess(`Copied ${copiedCount} hook script(s) to .claude/hooks/`);
+  }
+}
+
+// Configure statusline and hooks in settings.json
+async function configureSettings(projectPath) {
   const settingsPath = path.join(projectPath, '.claude', 'settings.json');
   let settings = {};
 
@@ -219,25 +253,59 @@ async function configureStatusline(projectPath) {
   }
 
   // Check if statusLine already configured
+  let updateStatusLine = true;
   if (settings.statusLine) {
     logInfo('Status line already configured');
     const answer = await askQuestion('Update status line configuration? (y/n): ');
     if (answer.toLowerCase() !== 'y' && answer.toLowerCase() !== 'yes') {
       logInfo('Skipping status line configuration');
-      return;
+      updateStatusLine = false;
     }
   }
 
-  // Configure statusline (use local copy)
-  settings.statusLine = {
-    type: 'command',
-    command: '.claude/lib/statusline-context-monitor.sh'
-  };
+  if (updateStatusLine) {
+    // Configure statusline (use local copy)
+    settings.statusLine = {
+      type: 'command',
+      command: '.claude/lib/statusline-context-monitor.sh'
+    };
+    logSuccess('Configured context monitor in status line');
+    logInfo('Tip: Edit .claude/settings.json to switch to advanced version or disable');
+  }
+
+  // Check if hooks already configured
+  let updateHooks = true;
+  if (settings.hooks && settings.hooks.UserPromptSubmit) {
+    logInfo('Context guard hook already configured');
+    const answer = await askQuestion('Update hook configuration? (y/n): ');
+    if (answer.toLowerCase() !== 'y' && answer.toLowerCase() !== 'yes') {
+      logInfo('Skipping hook configuration');
+      updateHooks = false;
+    }
+  }
+
+  if (updateHooks) {
+    // Configure context guard hook
+    if (!settings.hooks) {
+      settings.hooks = {};
+    }
+
+    settings.hooks.UserPromptSubmit = [
+      {
+        hooks: [
+          {
+            type: 'command',
+            command: '.claude/hooks/context-guard.sh'
+          }
+        ]
+      }
+    ];
+    logSuccess('Configured automatic checkpoint trigger at 80% context');
+    logInfo('Hook will inject checkpoint instruction when context reaches 160k tokens');
+  }
 
   // Write settings
   fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
-  logSuccess('Configured context monitor in status line');
-  logInfo('Tip: Edit .claude/settings.json to switch to advanced version or disable');
 }
 
 // Update or create Claude Code config (mcp.json)
@@ -439,10 +507,11 @@ async function install() {
   copyCommandFiles(projectPath);
   log('');
 
-  // Step 9: Copy statusline scripts and configure
-  log(`Step ${customMode ? '8' : '7'}: Setting up context monitor...`, 'yellow');
+  // Step 9: Copy statusline scripts, hooks, and configure settings
+  log(`Step ${customMode ? '8' : '7'}: Setting up context protection...`, 'yellow');
   copyStatuslineScripts(projectPath);
-  await configureStatusline(projectPath);
+  copyHooks(projectPath);
+  await configureSettings(projectPath);
   log('');
 
   // Success message
@@ -464,19 +533,29 @@ async function install() {
 
   log('');
   log('✨ Features Installed:', 'bright');
-  log('  • 🧠 Memory System    ← Automatic knowledge capture', 'cyan');
-  log('  • 📊 Context Monitor  ← Real-time token usage in status bar', 'cyan');
-  log('  • 💾 Anti-Compaction  ← Never lose context', 'cyan');
-  log('  • 🔍 Slash Commands   ← /mh, /checkpoint, etc.', 'cyan');
+  log('  • 🧠 Memory System       ← Automatic knowledge capture', 'cyan');
+  log('  • 📊 Context Monitor     ← Real-time token usage in status bar', 'cyan');
+  log('  • 🛡️  Auto-Checkpoint     ← Triggers at 80% context (160k tokens)', 'cyan');
+  log('  • 💾 Anti-Compaction     ← Never lose context', 'cyan');
+  log('  • 🔍 Slash Commands      ← /mh, /checkpoint, etc.', 'cyan');
+  log('');
+  log('🛡️  Automatic Context Protection:', 'bright');
+  log('  When context reaches 80% (160k tokens):', 'yellow');
+  log('  1. Hook automatically injects checkpoint instruction', 'cyan');
+  log('  2. Claude launches Pre-Compact Interceptor Agent', 'cyan');
+  log('  3. Complete session state saved to memory', 'cyan');
+  log('  4. Continue in fresh conversation with zero loss', 'cyan');
+  log('  ✅ Fully automatic - no manual monitoring needed!', 'green');
   log('');
   log('Next steps:', 'bright');
   log('  1. Reload Claude Code window or restart', 'cyan');
   log('  2. Check status bar for context monitor: ✓ Context: X/200k (X%)', 'cyan');
   log('  3. Verify memory tools: "Claude, can you see the memory tools?"', 'cyan');
-  log('  4. Start using the memory system automatically!', 'cyan');
+  log('  4. Work normally - checkpoint triggers automatically!', 'cyan');
   log('');
   log('Your project structure:', 'bright');
-  log('  • .claude/settings.json     ← Status line configured', 'blue');
+  log('  • .claude/settings.json     ← Status line + hooks configured', 'blue');
+  log('  • .claude/hooks/            ← Context guard (auto-checkpoint)', 'blue');
   log('  • .claude/lib/              ← Context monitor scripts', 'blue');
   log('  • .claude/commands/         ← Slash commands', 'blue');
   log('  • .claude-memory/           ← Vector database (auto-created)', 'blue');
@@ -485,12 +564,15 @@ async function install() {
   }
   log('  • .gitignore                ← Updated to ignore memory data', 'blue');
   log('');
-  log('Status Line Configuration:', 'bright');
-  log('  • Simple version active by default', 'cyan');
-  log('  • To use advanced (with progress bar):', 'cyan');
+  log('Configuration Options:', 'bright');
+  log('  Status Line (switch versions):', 'cyan');
   log('    Edit .claude/settings.json:', 'dim');
   log('    "command": ".claude/lib/statusline-context-advanced.sh"', 'dim');
-  log('  • To disable: Remove statusLine from settings.json', 'cyan');
+  log('  Auto-Checkpoint (adjust threshold):', 'cyan');
+  log('    Edit .claude/hooks/context-guard.sh', 'dim');
+  log('    Change TRIGGER_THRESHOLD (default: 160000 = 80%)', 'dim');
+  log('  Disable features:', 'cyan');
+  log('    Remove statusLine or hooks from settings.json', 'dim');
   log('');
   log('Documentation:', 'bright');
   log('  • Context Monitor: docs/CONTEXT_MONITOR.md', 'blue');
