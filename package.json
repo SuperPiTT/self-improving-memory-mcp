@@ -1,12 +1,13 @@
 {
   "name": "@pytt0n/self-improving-memory-mcp",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "🧠 Self-improving memory system for Claude with automatic learning, zero context loss, and advanced analytics",
   "type": "module",
   "main": "index.js",
   "bin": {
     "memory-cli": "./memory-cli.js",
-    "memory-install": "./bin/install.js"
+    "memory-install": "./bin/install.js",
+    "memory-verify": "./bin/verify-installation.js"
   },
   "files": [
     "index.js",

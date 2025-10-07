@@ -5,7 +5,7 @@
  * Makes it super easy to add to any project
  */
 
-import { execSync } from 'child_process';
+import { execSync, spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -409,6 +409,22 @@ async function install() {
   log('');
   log('🎉 Happy coding with infinite memory!', 'green');
   log('');
+
+  // Run verification
+  log('='.repeat(50), 'cyan');
+  log('\n🔍 Running post-installation verification...\n', 'yellow');
+
+  const verifyScript = path.join(__dirname, 'verify-installation.js');
+  const result = spawnSync('node', [verifyScript], {
+    stdio: 'inherit',
+    cwd: projectPath
+  });
+
+  if (result.status !== 0) {
+    log('');
+    logError('Verification detected some issues. Please review the output above.');
+    process.exit(1);
+  }
 }
 
 // Run installer
