@@ -127,6 +127,48 @@ function copyCLAUDEmd(projectPath) {
   logSuccess('Copied CLAUDE.md configuration to .claude-mcp/');
 }
 
+// Copy command files to project .claude/commands
+function copyCommandFiles(projectPath) {
+  const sourceCommandsDir = path.join(__dirname, '..', '.claude', 'commands');
+  const targetCommandsDir = path.join(projectPath, '.claude', 'commands');
+
+  if (!fs.existsSync(sourceCommandsDir)) {
+    logWarning('Command files not found in package. Skipping...');
+    return;
+  }
+
+  // Check if .claude/commands exists
+  if (!fs.existsSync(targetCommandsDir)) {
+    fs.mkdirSync(targetCommandsDir, { recursive: true });
+    logInfo('Created .claude/commands directory');
+  }
+
+  const commands = fs.readdirSync(sourceCommandsDir);
+  let copiedCount = 0;
+  let skippedCount = 0;
+
+  commands.forEach(command => {
+    const source = path.join(sourceCommandsDir, command);
+    const target = path.join(targetCommandsDir, command);
+
+    // Skip if file already exists (don't overwrite user customizations)
+    if (fs.existsSync(target)) {
+      skippedCount++;
+      return;
+    }
+
+    fs.copyFileSync(source, target);
+    copiedCount++;
+  });
+
+  if (copiedCount > 0) {
+    logSuccess(`Copied ${copiedCount} command file(s) to .claude/commands/`);
+  }
+  if (skippedCount > 0) {
+    logInfo(`Skipped ${skippedCount} existing command file(s)`);
+  }
+}
+
 // Update or create Claude Code config (mcp.json)
 async function updateClaudeCodeConfig(projectPath) {
   log('\n📝 Claude Code Configuration', 'cyan');
@@ -319,6 +361,11 @@ async function install() {
     logInfo('Please run this command from a Claude Code project directory');
     process.exit(1);
   }
+  log('');
+
+  // Step 8: Copy command files (always, regardless of mode)
+  log(`Step ${customMode ? '7' : '6'}: Installing slash commands...`, 'yellow');
+  copyCommandFiles(projectPath);
   log('');
 
   // Success message
