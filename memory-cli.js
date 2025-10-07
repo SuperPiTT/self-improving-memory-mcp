@@ -401,6 +401,59 @@ async function cmdValidate(projectPath = process.cwd()) {
   }
 }
 
+async function cmdReset(projectPath = process.cwd()) {
+  try {
+    const memoryPath = path.join(projectPath, MEMORY_DIR);
+
+    // Check if memory directory exists
+    try {
+      await fs.access(memoryPath);
+    } catch {
+      log('yellow', '⚠️  No knowledge base found to reset');
+      return;
+    }
+
+    // Get stats before reset
+    const store = await getVectorStore(projectPath);
+    const entries = await store.getAllEntries();
+    const count = entries.length;
+
+    if (count === 0) {
+      log('yellow', '⚠️  Knowledge base is already empty');
+      return;
+    }
+
+    log('yellow', `\n⚠️  WARNING: This will delete ALL knowledge base data (${count} entries)\n`);
+    log('red', 'This action cannot be undone!\n');
+
+    // Confirmation prompt
+    const readline = await import('readline');
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+
+    const answer = await new Promise(resolve => {
+      rl.question('Type "DELETE" to confirm: ', resolve);
+    });
+    rl.close();
+
+    if (answer.trim() !== 'DELETE') {
+      log('blue', '\n✓ Reset cancelled');
+      return;
+    }
+
+    // Delete the entire memory directory
+    await fs.rm(memoryPath, { recursive: true, force: true });
+
+    log('green', `\n✓ Knowledge base reset complete`);
+    log('dim', `  Deleted ${count} entries`);
+    log('dim', '  Run "memory-cli init" to reinitialize\n');
+  } catch (error) {
+    log('red', '✗ Error:', error.message);
+  }
+}
+
 // ============================================================================
 // CLI MAIN
 // ============================================================================
@@ -414,6 +467,7 @@ const commands = {
   export: cmdExport,
   analyze: cmdAnalyze,
   validate: cmdValidate,
+  reset: cmdReset,
 };
 
 async function main() {
@@ -432,11 +486,13 @@ async function main() {
     log('green', '  export [md]              ', colors.dim, 'Export knowledge to markdown');
     log('green', '  analyze                  ', colors.dim, 'Analyze knowledge quality');
     log('green', '  validate                 ', colors.dim, 'Validate vector database');
+    log('red', '  reset                    ', colors.dim, 'Delete ALL knowledge (requires confirmation)');
     log('reset', '\nExamples:');
     log('dim', '  memory-cli init');
     log('dim', '  memory-cli list decision');
     log('dim', '  memory-cli search "postgresql optimization"');
     log('dim', '  memory-cli export md');
+    log('dim', '  memory-cli reset');
     console.log();
     return;
   }
