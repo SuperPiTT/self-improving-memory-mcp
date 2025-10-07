@@ -75,24 +75,10 @@ function checkNodeVersion() {
   logSuccess(`Node.js ${version} detected`);
 }
 
-// Create .claude-mcp directory in project (for custom mode)
-function createClaudeDirectory(projectPath) {
-  const claudeDir = path.join(projectPath, '.claude-mcp');
-
-  if (!fs.existsSync(claudeDir)) {
-    fs.mkdirSync(claudeDir, { recursive: true });
-    logSuccess('Created .claude-mcp directory');
-  } else {
-    logInfo('.claude-mcp directory already exists');
-  }
-
-  return claudeDir;
-}
-
-// Copy agent files to project (custom mode)
+// Copy agent files to .claude/agents/ (standard location)
 function copyAgentFiles(projectPath) {
   const sourceAgentsDir = path.join(__dirname, '..', '.claude', 'agents');
-  const targetAgentsDir = path.join(projectPath, '.claude-mcp', 'agents');
+  const targetAgentsDir = path.join(projectPath, '.claude', 'agents');
 
   if (!fs.existsSync(sourceAgentsDir)) {
     logWarning('Agent files not found in package. Skipping...');
@@ -104,27 +90,64 @@ function copyAgentFiles(projectPath) {
   }
 
   const agents = fs.readdirSync(sourceAgentsDir);
+  let copiedCount = 0;
+  let skippedCount = 0;
+
   agents.forEach(agent => {
     const source = path.join(sourceAgentsDir, agent);
     const target = path.join(targetAgentsDir, agent);
+
+    // Skip if file already exists (don't overwrite user customizations)
+    if (fs.existsSync(target)) {
+      skippedCount++;
+      return;
+    }
+
     fs.copyFileSync(source, target);
+    copiedCount++;
   });
 
-  logSuccess(`Copied ${agents.length} agent files to .claude-mcp/agents/`);
+  if (copiedCount > 0) {
+    logSuccess(`Copied ${copiedCount} agent file(s) to .claude/agents/`);
+  }
+  if (skippedCount > 0) {
+    logInfo(`Skipped ${skippedCount} existing agent file(s)`);
+  }
 }
 
-// Copy CLAUDE.md to project (custom mode)
-function copyCLAUDEmd(projectPath) {
+// Extend or create CLAUDE.md with memory system instructions
+function extendCLAUDEmd(projectPath) {
   const sourceCLAUDE = path.join(__dirname, '..', '.claude', 'CLAUDE.md');
-  const targetCLAUDE = path.join(projectPath, '.claude-mcp', 'CLAUDE.md');
+  const targetCLAUDE = path.join(projectPath, '.claude', 'CLAUDE.md');
 
   if (!fs.existsSync(sourceCLAUDE)) {
     logWarning('CLAUDE.md not found in package. Skipping...');
     return;
   }
 
-  fs.copyFileSync(sourceCLAUDE, targetCLAUDE);
-  logSuccess('Copied CLAUDE.md configuration to .claude-mcp/');
+  const memoryInstructions = fs.readFileSync(sourceCLAUDE, 'utf-8');
+  const memoryMarker = '# Self-Improving Memory System - Claude Instructions';
+
+  // Check if CLAUDE.md already exists
+  if (fs.existsSync(targetCLAUDE)) {
+    const existingContent = fs.readFileSync(targetCLAUDE, 'utf-8');
+
+    // Check if memory instructions already present
+    if (existingContent.includes(memoryMarker)) {
+      logInfo('Memory instructions already present in CLAUDE.md');
+      return;
+    }
+
+    // Append memory instructions to existing file
+    const separator = '\n\n---\n\n';
+    const extendedContent = existingContent + separator + memoryInstructions;
+    fs.writeFileSync(targetCLAUDE, extendedContent);
+    logSuccess('Extended existing CLAUDE.md with memory system instructions');
+  } else {
+    // Create new CLAUDE.md with memory instructions
+    fs.writeFileSync(targetCLAUDE, memoryInstructions);
+    logSuccess('Created CLAUDE.md with memory system instructions');
+  }
 }
 
 // Copy command files to project .claude/commands
@@ -430,7 +453,7 @@ async function updateClaudeCodeConfig(projectPath) {
 
 
 // Create .gitignore entries
-function updateGitignore(projectPath, customMode) {
+function updateGitignore(projectPath) {
   const gitignorePath = path.join(projectPath, '.gitignore');
   const entries = [
     '',
@@ -440,11 +463,6 @@ function updateGitignore(projectPath, customMode) {
     'memory_data/',
     'cache/',
   ];
-
-  // Add .claude-mcp/ only in custom mode
-  if (customMode) {
-    entries.push('.claude-mcp/');
-  }
 
   const entryText = entries.join('\n');
 
@@ -464,19 +482,8 @@ function updateGitignore(projectPath, customMode) {
 
 // Main installation flow
 async function install() {
-  // Check for --custom flag
-  const customMode = process.argv.includes('--custom');
-
   log('\n🧠 Self-Improving Memory MCP - Installation\n', 'bright');
   log('='.repeat(50), 'cyan');
-  log('');
-
-  if (customMode) {
-    log('📦 Custom Mode: Files will be copied for customization', 'yellow');
-  } else {
-    log('🚀 Clean Mode: Using plugin from node_modules (no file copy)', 'cyan');
-    log('   Tip: Use --custom flag to copy files for customization', 'blue');
-  }
   log('');
 
   // Step 1: Check Node.js version
@@ -498,30 +505,8 @@ async function install() {
   }
   log('');
 
-  // Step 4: Create .claude-mcp directory (only in custom mode)
-  if (customMode) {
-    log('Step 3: Setting up .claude-mcp directory...', 'yellow');
-    createClaudeDirectory(projectPath);
-    log('');
-
-    // Step 5: Copy agent files
-    log('Step 4: Installing agent files...', 'yellow');
-    copyAgentFiles(projectPath);
-    copyCLAUDEmd(projectPath);
-    log('');
-  } else {
-    log('Step 3: Skipping file copy (clean mode)...', 'yellow');
-    logSuccess('Plugin will be used directly from node_modules');
-    log('');
-  }
-
-  // Step 6: Update .gitignore
-  log(`Step ${customMode ? '5' : '4'}: Configuring .gitignore...`, 'yellow');
-  updateGitignore(projectPath, customMode);
-  log('');
-
-  // Step 7: Configure Claude Code
-  log(`Step ${customMode ? '6' : '5'}: Configuring Claude Code...`, 'yellow');
+  // Step 4: Configure Claude Code
+  log('Step 3: Configuring Claude Code...', 'yellow');
   const claudeCodeConfigured = await updateClaudeCodeConfig(projectPath);
 
   if (!claudeCodeConfigured) {
@@ -531,38 +516,36 @@ async function install() {
   }
   log('');
 
-  // Step 8: Copy command files (always, regardless of mode)
-  log(`Step ${customMode ? '7' : '6'}: Installing slash commands...`, 'yellow');
+  // Step 5: Install agent files
+  log('Step 4: Installing agent files...', 'yellow');
+  copyAgentFiles(projectPath);
+  extendCLAUDEmd(projectPath);
+  log('');
+
+  // Step 6: Install slash commands
+  log('Step 5: Installing slash commands...', 'yellow');
   copyCommandFiles(projectPath);
   log('');
 
-  // Step 9: Copy statusline scripts, hooks, and configure settings
-  log(`Step ${customMode ? '8' : '7'}: Setting up context protection...`, 'yellow');
+  // Step 7: Set up context protection
+  log('Step 6: Setting up context protection...', 'yellow');
   copyStatuslineScripts(projectPath);
   copyHooks(projectPath);
   await configureSettings(projectPath);
+  log('');
+
+  // Step 8: Update .gitignore
+  log('Step 7: Configuring .gitignore...', 'yellow');
+  updateGitignore(projectPath);
   log('');
 
   // Success message
   log('='.repeat(50), 'cyan');
   log('\n✅ Installation Complete!\n', 'green');
 
-  if (customMode) {
-    log('📦 Custom Mode Installed:', 'bright');
-    log('  • Files copied to .claude-mcp/ directory', 'cyan');
-    log('  • You can edit agents and configuration', 'cyan');
-    log('  • Changes will be used by this project only', 'cyan');
-  } else {
-    log('🚀 Clean Mode Installed:', 'bright');
-    log('  • Using plugin directly from node_modules', 'cyan');
-    log('  • Zero files added to your project', 'cyan');
-    log('  • Updates via: npm update -g @pytt0n/self-improving-memory-mcp', 'cyan');
-    log('  • To customize: run "memory-install --custom"', 'blue');
-  }
-
-  log('');
   log('✨ Features Installed:', 'bright');
   log('  • 🧠 Memory System       ← Automatic knowledge capture', 'cyan');
+  log('  • 🤖 Intelligent Agents  ← Pattern recognition, error detection, etc.', 'cyan');
   log('  • 📊 Context Monitor     ← Real-time token usage in status bar', 'cyan');
   log('  • 🛡️  Auto-Checkpoint     ← Triggers at 80% context (160k tokens)', 'cyan');
   log('  • 💾 Anti-Compaction     ← Never lose context', 'cyan');
@@ -583,17 +566,18 @@ async function install() {
   log('  4. Work normally - checkpoint triggers automatically!', 'cyan');
   log('');
   log('Your project structure:', 'bright');
+  log('  • .claude/agents/           ← Intelligent agents (customizable)', 'blue');
+  log('  • .claude/CLAUDE.md         ← Extended with memory instructions', 'blue');
   log('  • .claude/settings.json     ← Status line + hooks configured', 'blue');
   log('  • .claude/hooks/            ← Context guard (auto-checkpoint)', 'blue');
   log('  • .claude/lib/              ← Context monitor scripts', 'blue');
   log('  • .claude/commands/         ← Slash commands', 'blue');
-  log('  • .claude-memory/           ← Vector database (auto-created)', 'blue');
-  if (customMode) {
-    log('  • .claude-mcp/              ← Plugin configuration (customizable)', 'blue');
-  }
+  log('  • .claude/memory-storage/   ← Vector database (auto-created)', 'blue');
   log('  • .gitignore                ← Updated to ignore memory data', 'blue');
   log('');
   log('Configuration Options:', 'bright');
+  log('  Customize Agents:', 'cyan');
+  log('    Edit files in .claude/agents/', 'dim');
   log('  Status Line (switch versions):', 'cyan');
   log('    Edit .claude/settings.json:', 'dim');
   log('    "command": ".claude/lib/statusline-context-advanced.sh"', 'dim');
