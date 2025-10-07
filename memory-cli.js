@@ -7,7 +7,14 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import { VectorStore } from './vector-store.js';
+import { fileURLToPath } from 'url';
+
+// Resolve paths relative to this file (works both locally and globally installed)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Import VectorStore from correct location
+const { VectorStore } = await import(path.join(__dirname, 'src', 'vector-store.js'));
 
 const MEMORY_DIR = '.claude-memory';
 
@@ -46,7 +53,7 @@ async function cmdInit(projectPath = process.cwd()) {
     await fs.mkdir(memoryDir, { recursive: true });
 
     // Inicializar VectorStore (crea estructura de directorios)
-    const store = await getVectorStore(projectPath);
+    await getVectorStore(projectPath);
 
     log('green', '✓ Vector memory system initialized in:', memoryDir);
     log('dim', '  Run "memory-cli stats" to see status');
