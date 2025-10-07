@@ -1,7 +1,7 @@
 {
   "name": "@pytt0n/self-improving-memory-mcp",
-  "version": "2.0.4",
-  "description": "🧠 Self-improving memory system for Claude with automatic learning, zero context loss, and advanced analytics",
+  "version": "2.1.0",
+  "description": "🧠 Self-improving memory system for Claude Code CLI with automatic learning, zero context loss, and advanced analytics",
   "type": "module",
   "main": "index.js",
   "bin": {
